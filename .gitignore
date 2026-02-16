@@ -1,0 +1,6 @@
+bin/
+results/
+*.o
+*.out
+*.csv
+.DS_Store
