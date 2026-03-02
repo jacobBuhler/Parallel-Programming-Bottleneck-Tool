@@ -32,7 +32,19 @@ run-good: all
 run-bad: all
 	$(TARGET) --threads 1,2,4,8 -- $(BAD) 20000000
 
+run-good-avg: all
+	$(TARGET) --threads 1,2,4,8 --runs 5 -- $(GOOD) 80000000
+
+run-bad-avg: all
+	$(TARGET) --threads 1,2,4,8 --runs 5 -- $(BAD) 20000000
+
+run-good-csv: all
+	$(TARGET) --threads 1,2,4,8 --runs 5 --csv good.csv -- $(GOOD) 80000000
+
+run-bad-csv: all
+	$(TARGET) --threads 1,2,4,8 --runs 5 --csv bad.csv -- $(BAD) 20000000
+
 clean:
 	rm -rf $(BIN_DIR)
 
-.PHONY: all clean run-good run-bad
+.PHONY: all clean run-good run-bad run-good-avg run-bad-avg run-good-csv run-bad-csv
