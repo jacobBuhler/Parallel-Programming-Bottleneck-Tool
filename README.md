@@ -1,13 +1,29 @@
 # Parallel-Programming-Bottleneck-Tool
-OpenMP performance analysis tool for detecting parallel scalability bottlenecks
+OpenMP performance analysis tool for detecting parallel scalability bottlenecks.
 
-# Building the Project
+## Building the Project
+
+```bash
 make
+```
 
-# Cleaning the Build
+## Cleaning the Build
+
+```bash
 make clean
 make
+```
 
-# Running the Program
-make run-good (good example)
-make run-bad (bad example)
+## Running the Program
+
+```bash
+make run-good
+```
+
+Runs the example program that demonstrates **good OpenMP scaling**.
+
+```bash
+make run-bad
+```
+
+Runs the example program that demonstrates **poor OpenMP scaling**.
