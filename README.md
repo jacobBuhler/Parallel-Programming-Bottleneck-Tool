@@ -35,31 +35,33 @@ pip install matplotlib
 ## Build
 
 Compile the program using the provided **Makefile**:
-
-    make
+```bash
+make
+```
 
 Clean the build files:
-
-    make clean
-
+```bash
+make clean
+```
 
 ## Usage
 
 Basic usage:
-
-    ./ompcheck --threads 1,2,4,8 -- ./target_program
+```bash
+./ompcheck --threads 1,2,4,8 -- ./target_program
+```
 
 Example with additional options:
-
-    ./ompcheck --threads 1,2,4,8 --runs 5 --csv results.csv --plot -- ./target_program
-
+```bash
+./ompcheck --threads 1,2,4,8 --runs 5 --csv results.csv --plot -- ./target_program
+```
 
 ## Command Line Options
 
 | Option | Description |
 |------|------|
-| --threads | Comma-separated list of thread counts |
-| --runs | Number of runs per thread configuration (default: 5) |
-| --csv | Output benchmark data to CSV |
-| --plot | Generate plots from the CSV results |
-| --report | Output scaling diagnosis report |
+| `--threads` | Comma-separated list of thread counts |
+| `--runs` | Number of runs per thread configuration (default: 5) |
+| `--csv` | Output benchmark data to CSV |
+| `--plot` | Generate plots from the CSV results |
+| `--report` | Output scaling diagnosis report |
