@@ -16,8 +16,10 @@
 #include <unistd.h> //fork & execvp
 #include <sys/wait.h> //waitpid, WIFEXITED & WEXITSTATUS
 
+#include "diagnosis.h"
+
 static void usage(const char* prog) { //print usage and exit w code 2
-    std::cerr << "Usage:\n" << "  " << prog << " --threads 1,2,4,8 [--runs N] [--csv out.csv] -- <command> [args...]\n";
+    std::cerr << "Usage:\n" << "  " << prog << " --threads 1,2,4,8 [--runs N] [--csv out.csv] [--plot] [--report out.txt] -- <command> [args...]\n";
     std::exit(2);
 }
 
@@ -83,6 +85,28 @@ static bool status_ok(int status){
     return WIFEXITED(status) && (WEXITSTATUS(status) == 0);
 }
 
+//removes .csv from filename
+static std::string strip_csv_extension(const std::string& path){
+    if (path.size() >= 4 && path.substr(path.size() - 4) == ".csv"){
+        return path.substr(0, path.size() - 4);
+    }
+    return path;
+}
+//runs the python plotting script to generate the performance graphs
+static void run_plot_script(const std::string& csv_path, const std::string& title){
+    std::string prefix = strip_csv_extension(csv_path);
+    std::string command =
+        "python3 scripts/plot_results.py \"" +
+        csv_path + "\" \"" +
+        prefix + ".png\" \"" +
+        title + "\"";
+
+    int rc = std::system(command.c_str());
+    if(rc != 0){
+        std::cerr << "Warning: plotting script failed.\n";
+    }
+}
+
 //main func
 int main(int argc, char** argv){
     if(argc < 2){ //arg checker
@@ -93,6 +117,9 @@ int main(int argc, char** argv){
 
     std::string csv_path;
     bool csv_enabled = false;
+
+    bool plot_enabled = false;
+    std::string report_path = "output/diagnosis.txt";
 
     int i = 1;
     for(; i < argc; ++i){
@@ -115,6 +142,11 @@ int main(int argc, char** argv){
             if(i + 1 >= argc) usage(argv[0]);
                 csv_path = argv[++i];
                 csv_enabled = true;
+        }else if(a == "--plot") {
+            plot_enabled = true;
+        }else if (a == "--report"){
+            if (i + 1 >= argc) usage(argv[0]);
+            report_path = argv[++i];
         }else{
             usage(argv[0]);//unknown flag
         }
@@ -124,10 +156,16 @@ int main(int argc, char** argv){
         usage(argv[0]);
     }
 
+    if(plot_enabled && !csv_enabled){
+        std::cerr << "--plot requires --csv <file>\n";
+        return 1;
+    }
+
     //child argv now points to target program and its arguments
     char** child_argv = &argv[i];
     auto threads = parse_threads(threads_arg);//convert thread list to vector<int>
 
+    std::vector<std::vector<double>> all_times;
 
     std::ofstream csv;
     if(csv_enabled){//open csv if req
@@ -155,14 +193,11 @@ int main(int argc, char** argv){
         csv << "threads,trial,time\n";
     }
     
-    double baseline_time = 0.0;//time for first thread count
-
     for(size_t idx = 0; idx < threads.size(); ++idx){//loop over each thread count
         int t = threads[idx];
-
         setenv("OMP_NUM_THREADS", std::to_string(t).c_str(), 1);//set OpenMP thread count
-        double sum = 0.0;
-
+        std::vector<double> thread_times;
+        
         for(int r = 0; r < runs; ++r){
             double t0 = now_seconds_monotonic();//timer start
             int status = run_child(child_argv);//run target program
@@ -174,25 +209,34 @@ int main(int argc, char** argv){
             }
 
             double elapsed = t1 - t0;
-            sum += elapsed;
+            thread_times.push_back(elapsed);
 
             if(csv_enabled){
                 csv << t << "," << (r+1) << "," << std::fixed << std::setprecision(9) << elapsed << "\n";
             }
         }
-        double avg = sum / (double)runs;
+        all_times.push_back(thread_times);
+        
+    }
+    //compute scaling metrics and diagnostics
+    auto results = build_scaling_results(threads, all_times);
 
-        if(idx == 0){
-            baseline_time = avg;
-        }
+    //print resilts to terminal
+    print_scaling_summary(results);
+    print_diagnosis(results);
 
-        double speedup = baseline_time / avg;//compute speedup
-        double efficiency = speedup / (double)t; //compute efficiency
+    //write report file
+    write_diagnosis_report(results, report_path);
 
-        std::cout << "threads=" << t << " time=" << std::fixed << std::setprecision(6) << avg << "s"
-                << " speedup=" << std::setprecision(3) << speedup << " eff=" << std::setprecision(3)
-                << efficiency <<"\n";
-  }
+    if(csv_enabled){//close file
+    csv.flush();
+    csv.close();
+    }
+
+    if(plot_enabled){
+        run_plot_script(csv_path, "OMPCheck Scaling Results");
+        std::cout << "\nPlots generated from: " << csv_path << "\n";
+    }
 
   return 0;
 }
