@@ -31,6 +31,7 @@ Install matplotlib if needed:
 
 ```bash
 pip install matplotlib
+```
 
 ## Build
 
