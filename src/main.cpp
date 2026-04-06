@@ -218,15 +218,24 @@ int main(int argc, char** argv){
         all_times.push_back(thread_times);
         
     }
+
     //compute scaling metrics and diagnostics
     auto results = build_scaling_results(threads, all_times);
+    auto projected_threads = build_default_projection_threads(results);
+    auto projected_results = build_projected_scaling_results(results, projected_threads);
+    double projection_serial_fraction = 0.0;
+    if(results.size() > 1){
+        projection_serial_fraction = results.back().serial_fraction;
+    }
 
     //print resilts to terminal
     print_scaling_summary(results);
+    print_projected_scaling_summary(projected_results, projection_serial_fraction);
     print_diagnosis(results);
+    
 
     //write report file
-    write_diagnosis_report(results, report_path);
+    write_diagnosis_report(results, projected_results, projection_serial_fraction, report_path);
 
     if(csv_enabled){//close file
     csv.flush();
