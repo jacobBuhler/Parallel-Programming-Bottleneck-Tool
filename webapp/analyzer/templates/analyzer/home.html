@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OMPCheck</title>
+</head>
+<body>
+    <h1>OMPCheck Web App</h1>
+
+    {% if user.is_authenticated %}
+        <p>Welcome, {{ user.username }}!</p>
+        <p><a href="/analysis/new/">Start New Analysis</a></p>
+        <form method="post" action="/accounts/logout/">
+            {% csrf_token %}
+            <button type="submit">Logout</button>
+        </form>
+    {% else %}
+        <p>You are not logged in.</p>
+        <a href="/accounts/login/">Login</a><br>
+        <a href="/signup/">Sign up</a>
+    {% endif %}
+</body>
+</html>

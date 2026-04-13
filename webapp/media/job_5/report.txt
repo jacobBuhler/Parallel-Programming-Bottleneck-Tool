@@ -1,0 +1,22 @@
+OMPCheck Scaling Diagnosis Report
+
+Threads | Avg Time | Min Time | Max Time | Std Dev | Speedup | Ideal | Efficiency | Serial Fraction | Max Theoretical Speedup
+--------------------------------------------------------------------------------------------------------------------------------
+      1 | 0.699274 | 0.690223 | 0.713818 | 0.008049 |   1.000 | 1.000 |      1.000 |               - |                       -
+      4 | 0.212079 | 0.190566 | 0.229598 | 0.016561 |   3.297 | 4.000 |      0.824 |          0.0710 |                  14.076
+      8 | 0.144958 | 0.140335 | 0.151780 | 0.003918 |   4.824 | 8.000 |      0.603 |          0.0941 |                  10.632
+
+Projected Results (Amdahl-based)
+Serial fraction used for projection: 0.0941
+Threads | Predicted Speedup | Predicted Time | Predicted Efficiency
+----------------------------------------------------------------
+     16 |             6.637 |       0.105364 |                0.415
+     32 |             8.172 |       0.085567 |                0.255
+     64 |             9.241 |       0.075669 |                0.144
+
+Interpretation
+--------------
+1 -> 4 threads: Timing variability is high, so benchmark results may be noisy.
+4 -> 8 threads: Scaling appears healthy.
+
+Projection note: future speedup was estimated with Amdahl's Law using the serial fraction from the highest measured thread count. At 64 threads, projected speedup is 9.241 with predicted efficiency 0.144.

@@ -3,6 +3,29 @@ import csv
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
+
+def estimate_serial_fraction(speedup, threads):
+    if threads <= 1 or speedup <= 0.0:
+        return 0.0
+
+    numerator = (1.0 / speedup) - (1.0 / threads)
+    denominator = 1.0 - (1.0 / threads)
+    if denominator == 0.0:
+        return 0.0
+
+    serial_fraction = numerator / denominator
+    return max(0.0, min(1.0, serial_fraction))
+
+
+def amdahl_speedup(serial_fraction, threads):
+    if threads <= 0:
+        return 0.0
+    denominator = serial_fraction + ((1.0 - serial_fraction) / threads)
+    if denominator <= 0.0:
+        return 0.0
+    return 1.0 / denominator
+
+
 def main():
     if len(sys.argv) != 4:
         print("Usage: python3 plot_results.py <input.csv> <output.png> <title>")
@@ -41,7 +64,20 @@ def main():
         avg_times.append(avg)
         speedups.append(speedup)
         efficiencies.append(efficiency)
-    
+
+    serial_fraction = 0.0
+    if len(thread_counts) > 1:
+        serial_fraction = estimate_serial_fraction(speedups[-1], thread_counts[-1])
+
+    future_threads = []
+    current = thread_counts[-1]
+    for _ in range(3):
+        current *= 2
+        future_threads.append(current)
+
+    predicted_speedups = [amdahl_speedup(serial_fraction, t) for t in future_threads]
+    predicted_efficiencies = [s / t for s, t in zip(predicted_speedups, future_threads)]   
+ 
     #runtime vs threads
     plt.figure(figsize=(8, 5))
     plt.plot(thread_counts, avg_times, marker="o", label="Average Time")
@@ -55,7 +91,8 @@ def main():
     #speedup vs threads
     plt.figure(figsize=(8, 5))
     plt.plot(thread_counts, speedups, marker="o", label="Measured Speedup")
-    plt.plot(thread_counts, thread_counts, marker="x", linestyle="--", label="Ideal Speedup")
+    plt.plot(thread_counts + future_threads, thread_counts + future_threads, marker="x", linestyle="--", label="Ideal Speedup")
+    plt.plot(future_threads, predicted_speedups, marker="s", linestyle=":", label="Predicted Speedup")
     plt.xlabel("Threads")
     plt.ylabel("Speedup")
     plt.title(f"{title} - Speedup")
@@ -66,11 +103,13 @@ def main():
 
     #efficiency vs threads
     plt.figure(figsize=(8, 5))
-    plt.plot(thread_counts, efficiencies, marker="o", label="Efficiency")
+    plt.plot(thread_counts, efficiencies, marker="o", label="Measured Efficiency")
+    plt.plot(future_threads, predicted_efficiencies, marker="s", linestyle=":", label="Predicted Efficiency")
     plt.xlabel("Threads")
     plt.ylabel("Efficiency")
     plt.title(f"{title} - Efficiency")
     plt.grid(True)
+    plt.legend()
     plt.savefig(output_png.replace(".png", "_efficiency.png"), bbox_inches="tight")
     plt.close()
 

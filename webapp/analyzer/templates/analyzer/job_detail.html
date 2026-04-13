@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Analysis Job</title>
+</head>
+<body>
+    <h1>{{ job.title }}</h1>
+
+    <p><strong>Status:</strong> {{ job.status }}</p>
+    <p><strong>File:</strong> {{ job.original_filename }}</p>
+    <p><strong>Threads:</strong> {{ job.threads }}</p>
+    <p><strong>Runs:</strong> {{ job.runs }}</p>
+    <p><strong>Extra Args:</strong> {{ job.extra_args }}</p>
+
+    <h2>Output Files</h2>
+
+    {% if job.csv_file %}
+        <p><a href="{{ job.csv_file.url }}">Download CSV</a></p>
+    {% else %}
+        <p>No CSV file found.</p>
+    {% endif %}
+
+    {% if job.report_file %}
+        <p><a href="{{ job.report_file.url }}">Download Report</a></p>
+    {% else %}
+        <p>No report file found.</p>
+    {% endif %}
+
+    <h2>Plots</h2>
+
+    {% if job.runtime_plot %}
+        <div>
+            <p><strong>Runtime Plot</strong></p>
+            <img src="{{ job.runtime_plot.url }}" width="500">
+        </div>
+    {% else %}
+        <p>No runtime plot found.</p>
+    {% endif %}
+
+    {% if job.speedup_plot %}
+        <div>
+            <p><strong>Speedup Plot</strong></p>
+            <img src="{{ job.speedup_plot.url }}" width="500">
+        </div>
+    {% else %}
+        <p>No speedup plot found.</p>
+    {% endif %}
+
+    {% if job.efficiency_plot %}
+        <div>
+            <p><strong>Efficiency Plot</strong></p>
+            <img src="{{ job.efficiency_plot.url }}" width="500">
+        </div>
+    {% else %}
+        <p>No efficiency plot found.</p>
+    {% endif %}
+
+    <h2>Standard Output</h2>
+    <pre>{{ job.stdout_text }}</pre>
+
+    <h2>Standard Error</h2>
+    <pre>{{ job.stderr_text }}</pre>
+
+    <p><a href="/analysis/new/">Run Another Analysis</a></p>
+    <p><a href="/">Back Home</a></p>
+</body>
+</html>

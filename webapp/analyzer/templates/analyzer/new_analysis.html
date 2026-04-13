@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>New Analysis</title>
+</head>
+<body>
+    <h1>Run New Analysis</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit Job</button>
+    </form>
+
+    <p><a href="/">Back Home</a></p>
+</body>
+</html>
