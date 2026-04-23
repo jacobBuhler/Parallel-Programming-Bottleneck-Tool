@@ -143,7 +143,7 @@ std::vector<int> build_default_projection_threads(const std::vector<ScalingResul
     return projected_threads;
 }
 
-std::vector<ProjectedScalingResult> build_projected_scaling_results(const std::vector<ScalingResult>& measured_results const std::vector<int>& projected_threads){
+std::vector<ProjectedScalingResult> build_projected_scaling_results(const std::vector<ScalingResult>& measured_results, const std::vector<int>& projected_threads){
     std::vector<ProjectedScalingResult> projected_results;
     if(measured_results.empty()){
         return projected_results;

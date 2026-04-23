@@ -18,6 +18,11 @@ class AnalysisJob(models.Model):
         ('done', 'Done'),
         ('failed', 'Failed'),
     ]
+    PARADIGM_CHOICES = [
+        ('openmp', 'OpenMP'),
+        ('mpi', 'MPI'),
+        ('pthreads', 'pthreads'),
+    ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=200, default="Untitled Run")
@@ -25,6 +30,7 @@ class AnalysisJob(models.Model):
     uploaded_file = models.FileField(upload_to='uploads/')
     original_filename = models.CharField(max_length=255, blank=True)
 
+    paradigm = models.CharField(max_length=20, choices=PARADIGM_CHOICES, default='openmp')
     threads = models.CharField(max_length=100)
     runs = models.PositiveIntegerField(default=5)
     extra_args = models.CharField(max_length=255, blank=True)

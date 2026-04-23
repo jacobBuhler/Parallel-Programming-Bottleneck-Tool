@@ -25,4 +25,4 @@ class SimpleSignupForm(forms.ModelForm):
 class AnalysisJobForm(forms.ModelForm):
     class Meta:
         model = AnalysisJob
-        fields = ['title', 'uploaded_file', 'threads', 'runs', 'extra_args']
+        fields = ['title', 'paradigm', 'uploaded_file', 'threads', 'runs', 'extra_args']

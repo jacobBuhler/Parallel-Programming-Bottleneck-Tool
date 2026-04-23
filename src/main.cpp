@@ -18,8 +18,18 @@
 
 #include "diagnosis.h"
 
+enum class Paradigm { OpenMP, MPI, Pthreads};
+
+static Paradigm parse_paradigm(const std::string& s){
+    if(s == "openmp") return Paradigm::OpenMP;
+    if(s == "mpi") return Paradigm::MPI;
+    if(s == "pthreads") return Paradigm::Pthreads;
+    std::cerr << "Unknown paradigm: " << s << "\n";
+    std::exit(2);
+}
+
 static void usage(const char* prog) { //print usage and exit w code 2
-    std::cerr << "Usage:\n" << "  " << prog << " --threads 1,2,4,8 [--runs N] [--csv out.csv] [--plot] [--report out.txt] -- <command> [args...]\n";
+    std::cerr << "Usage:\n" << "  " << prog << " --threads 1,2,4,8 [--runs N] [--csv out.csv] [--plot] [--report out.txt] [--paradigm openmp|mpi|pthreads] -- <command> [args...]\n";
     std::exit(2);
 }
 
@@ -107,6 +117,37 @@ static void run_plot_script(const std::string& csv_path, const std::string& titl
     }
 }
 
+static int run_with_paradigm(Paradigm paradigm, int thread_count, char* const user_argv[], int user_argc){
+    switch(paradigm){
+ 
+    case Paradigm::OpenMP:
+        setenv("OMP_NUM_THREADS", std::to_string(thread_count).c_str(), 1);//set OpenMP thread count
+        return run_child(user_argv);
+ 
+    case Paradigm::MPI: {
+        std::string np_str = std::to_string(thread_count);
+        std::vector<const char*> v;
+        v.push_back("mpirun");
+        v.push_back("--oversubscribe");
+        v.push_back("-np");
+        v.push_back(np_str.c_str());
+        for(int k = 0; k < user_argc; ++k) v.push_back(user_argv[k]);
+        v.push_back(nullptr);
+        return run_child(const_cast<char* const*>(v.data()));
+    }
+    case Paradigm::Pthreads: {
+        std::string n_str = std::to_string(thread_count);
+        std::vector<const char*> v;
+        v.push_back(user_argv[0]);
+        v.push_back(n_str.c_str());
+        for(int k = 1; k < user_argc; ++k) v.push_back(user_argv[k]);
+        v.push_back(nullptr);
+        return run_child(const_cast<char* const*>(v.data()));
+    }
+    }
+    return -1; //unreachebale
+}
+
 //main func
 int main(int argc, char** argv){
     if(argc < 2){ //arg checker
@@ -120,6 +161,7 @@ int main(int argc, char** argv){
 
     bool plot_enabled = false;
     std::string report_path = "output/diagnosis.txt";
+    Paradigm paradigm = Paradigm::OpenMP;
 
     int i = 1;
     for(; i < argc; ++i){
@@ -147,6 +189,9 @@ int main(int argc, char** argv){
         }else if (a == "--report"){
             if (i + 1 >= argc) usage(argv[0]);
             report_path = argv[++i];
+        }else if(a == "--paradigm"){
+            if(i + 1 >= argc) usage(argv[0]);
+            paradigm = parse_paradigm(argv[++i]);
         }else{
             usage(argv[0]);//unknown flag
         }
@@ -163,6 +208,7 @@ int main(int argc, char** argv){
 
     //child argv now points to target program and its arguments
     char** child_argv = &argv[i];
+    int child_argc = argc - i;
     auto threads = parse_threads(threads_arg);//convert thread list to vector<int>
 
     std::vector<std::vector<double>> all_times;
@@ -200,7 +246,7 @@ int main(int argc, char** argv){
         
         for(int r = 0; r < runs; ++r){
             double t0 = now_seconds_monotonic();//timer start
-            int status = run_child(child_argv);//run target program
+            int status = run_with_paradigm(paradigm, t, child_argv, child_argc);//run target program
             double t1 = now_seconds_monotonic();//end timer
 
             if(!status_ok(status)){//check for failure

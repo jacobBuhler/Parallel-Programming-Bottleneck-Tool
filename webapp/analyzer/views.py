@@ -5,6 +5,7 @@ from django.conf import settings
 
 import subprocess
 import os
+import shlex
 
 from .forms import SimpleSignupForm, AnalysisJobForm
 from .models import AnalysisJob
@@ -12,7 +13,7 @@ from .models import AnalysisJob
 
 def home(request):
     return render(request, 'analyzer/home.html')
-
+    
 
 def signup(request):
     if request.method == 'POST':
@@ -28,6 +29,33 @@ def signup(request):
 
     return render(request, 'registration/signup.html', {'form': form})
 
+def _compile_command(upload_path, compiled_path, paradigm):
+    #return compiler command
+    is_cpp = upload_path.endswith('.cpp')
+    compiler = 'g++' if is_cpp else 'gcc'
+    base = [compiler, '-O2', upload_path, '-lm', '-o', compiled_path]
+
+    if paradigm == 'openmp':
+        base.insert(2, '-fopenmp')
+    elif paradigm == 'pthreads':
+        base += ['-lpthread']
+    elif paradigm == 'mpi':
+        base[0] = 'mpicxx' if is_cpp else 'mpicc'
+    return base
+
+def _ompcheck_run_args(ompcheck_path, paradigm, threads, runs, csv_path, report_path, program_path, extra_args):
+    #build the full command
+    extra = shlex.split(extra_args) if extra_args.strip() else []
+    return [
+        str(ompcheck_path),
+        '--threads', threads,
+        '--runs', str(runs),
+        '--csv', csv_path,
+        '--plot',
+        '--report', report_path,
+        '--paradigm', paradigm,
+        '--', program_path,
+    ]   + extra
 
 @login_required
 def new_analysis(request):
@@ -40,20 +68,12 @@ def new_analysis(request):
             job.status = 'running'
             job.save()
 
-            upload_path = job.uploaded_file.path
+            upload_path = str(job.uploaded_file.path)
+            paradigm = job.paradigm
             #compile if c file
-            if upload_path.endswith(".c"):
-                compiled_path = upload_path.replace(".c", "")
-
-                compile_cmd = [
-                    "gcc",
-                    "-O2",
-                    "-fopenmp",
-                    upload_path,
-                    '-lm',
-                    "-o",
-                    compiled_path
-                ]
+            if str(upload_path).endswith(('.c', '.cpp')):
+                compiled_path = upload_path.rsplit('.', 1)[0]
+                compile_cmd = _compile_command(upload_path, compiled_path, paradigm)
 
                 compile_result = subprocess.run(
                     compile_cmd,
@@ -80,17 +100,16 @@ def new_analysis(request):
                 project_root = settings.BASE_DIR.parent
                 ompcheck_path = project_root / 'bin' / 'ompcheck'
 
-                command = [
-                    str(ompcheck_path),
-                    "--threads", job.threads,
-                    "--runs", str(job.runs),
-                    "--csv", csv_path,
-                    "--plot",
-                    "--report", report_path,
-                    "--",
-                    upload_path,
-                    job.extra_args
-                ]
+                command = _ompcheck_run_args(
+                    ompcheck_path = ompcheck_path,
+                    paradigm = paradigm,
+                    threads = job.threads,
+                    runs = job.runs,
+                    csv_path = csv_path,
+                    report_path = report_path,
+                    program_path = upload_path,
+                    extra_args = job.extra_args,
+                )
 
                 project_root = settings.BASE_DIR.parent
 
