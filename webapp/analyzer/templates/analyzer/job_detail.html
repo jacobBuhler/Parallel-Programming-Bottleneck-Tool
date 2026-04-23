@@ -1,67 +1,121 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Analysis Job</title>
-</head>
-<body>
-    <h1>{{ job.title }}</h1>
+{% extends 'analyzer/base.html' %}
 
-    <p><strong>Status:</strong> {{ job.status }}</p>
-    <p><strong>File:</strong> {{ job.original_filename }}</p>
-    <p><strong>Threads:</strong> {{ job.threads }}</p>
-    <p><strong>Runs:</strong> {{ job.runs }}</p>
-    <p><strong>Extra Args:</strong> {{ job.extra_args }}</p>
+{% block title %}{{ job.title }} - OMPCheck{% endblock %}
 
-    <h2>Output Files</h2>
-
-    {% if job.csv_file %}
-        <p><a href="{{ job.csv_file.url }}">Download CSV</a></p>
-    {% else %}
-        <p>No CSV file found.</p>
-    {% endif %}
-
-    {% if job.report_file %}
-        <p><a href="{{ job.report_file.url }}">Download Report</a></p>
-    {% else %}
-        <p>No report file found.</p>
-    {% endif %}
-
-    <h2>Plots</h2>
-
-    {% if job.runtime_plot %}
-        <div>
-            <p><strong>Runtime Plot</strong></p>
-            <img src="{{ job.runtime_plot.url }}" width="500">
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">{{ job.title }}</h1>
+        <div class="text-secondary small">
+            Submitted {{ job.created_at|date:"M j, Y H:i" }}
         </div>
-    {% else %}
-        <p>No runtime plot found.</p>
-    {% endif %}
+    </div>
 
-    {% if job.speedup_plot %}
-        <div>
-            <p><strong>Speedup Plot</strong></p>
-            <img src="{{ job.speedup_plot.url }}" width="500">
+    {% if job.status == 'done' %}
+        <span class="badge bg-success fs-6">Done</span>
+    {% elif job.status == 'failed' %}
+        <span class="badge bg-danger fs-6">Failed</span>
+    {% elif job.status == 'running' %}
+        <span class="badge bg-warning text-dark fs-6">Running</span>
+    {% else %}
+        <span class="badge bg-secondary fs-6">{{ job.get_status_display }}</span>
+    {% endif %}
+</div>
+
+<div class="card bg-body-tertiary border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4">
+                <div class="meta-label">Paradigm</div>
+                <div class="meta-value">{{ job.get_paradigm_display }}</div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="meta-label">File</div>
+                <div class="meta-value">{{ job.original_filename }}</div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="meta-label">Threads / Processes</div>
+                <div class="meta-value">{{ job.threads }}</div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="meta-label">Runs per count</div>
+                <div class="meta-value">{{ job.runs }}</div>
+            </div>
+            <div class="col-md-6 col-lg-8">
+                <div class="meta-label">Extra Args</div>
+                <div class="meta-value">{{ job.extra_args|default:"—" }}</div>
+            </div>
         </div>
-    {% else %}
-        <p>No speedup plot found.</p>
-    {% endif %}
+    </div>
+</div>
 
-    {% if job.efficiency_plot %}
-        <div>
-            <p><strong>Efficiency Plot</strong></p>
-            <img src="{{ job.efficiency_plot.url }}" width="500">
+<div class="card bg-body-tertiary border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+        <h2 class="h5 mb-3">Output Files</h2>
+        <div class="d-flex flex-wrap gap-2">
+            {% if job.csv_file %}
+                <a href="{{ job.csv_file.url }}" class="btn btn-outline-light btn-sm">Download CSV</a>
+            {% else %}
+                <span class="text-secondary small align-self-center">No CSV file.</span>
+            {% endif %}
+            {% if job.report_file %}
+                <a href="{{ job.report_file.url }}" class="btn btn-outline-light btn-sm">Download Report</a>
+            {% else %}
+                <span class="text-secondary small align-self-center">No report file.</span>
+            {% endif %}
         </div>
-    {% else %}
-        <p>No efficiency plot found.</p>
-    {% endif %}
+    </div>
+</div>
 
-    <h2>Standard Output</h2>
-    <pre>{{ job.stdout_text }}</pre>
+{% if job.runtime_plot or job.speedup_plot or job.efficiency_plot %}
+<div class="card bg-body-tertiary border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+        <h2 class="h5 mb-3">Plots</h2>
+        <div class="row g-4">
+            {% if job.runtime_plot %}
+                <div class="col-lg-4">
+                    <div class="meta-label mb-2">Runtime</div>
+                    <img src="{{ job.runtime_plot.url }}" class="plot-img" alt="Runtime plot">
+                </div>
+            {% endif %}
+            {% if job.speedup_plot %}
+                <div class="col-lg-4">
+                    <div class="meta-label mb-2">Speedup</div>
+                    <img src="{{ job.speedup_plot.url }}" class="plot-img" alt="Speedup plot">
+                </div>
+            {% endif %}
+            {% if job.efficiency_plot %}
+                <div class="col-lg-4">
+                    <div class="meta-label mb-2">Efficiency</div>
+                    <img src="{{ job.efficiency_plot.url }}" class="plot-img" alt="Efficiency plot">
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
 
-    <h2>Standard Error</h2>
-    <pre>{{ job.stderr_text }}</pre>
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card bg-body-tertiary border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+                <h2 class="h6 mb-3">Standard Output</h2>
+                <pre>{{ job.stdout_text|default:"(empty)" }}</pre>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card bg-body-tertiary border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+                <h2 class="h6 mb-3">Standard Error</h2>
+                <pre>{{ job.stderr_text|default:"(empty)" }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <p><a href="/analysis/new/">Run Another Analysis</a></p>
-    <p><a href="/">Back Home</a></p>
-</body>
-</html>
+<div class="d-flex gap-2">
+    <a href="/analysis/new/" class="btn btn-primary">Run Another Analysis</a>
+    <a href="/" class="btn btn-outline-light">Back Home</a>
+</div>
+{% endblock %}

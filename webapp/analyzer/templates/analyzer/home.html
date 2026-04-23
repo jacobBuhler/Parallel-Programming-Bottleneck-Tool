@@ -1,22 +1,30 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>OMPCheck</title>
-</head>
-<body>
-    <h1>OMPCheck Web App</h1>
+{% extends 'analyzer/base.html' %}
 
-    {% if user.is_authenticated %}
-        <p>Welcome, {{ user.username }}!</p>
-        <p><a href="/analysis/new/">Start New Analysis</a></p>
-        <form method="post" action="/accounts/logout/">
-            {% csrf_token %}
-            <button type="submit">Logout</button>
-        </form>
-    {% else %}
-        <p>You are not logged in.</p>
-        <a href="/accounts/login/">Login</a><br>
-        <a href="/signup/">Sign up</a>
-    {% endif %}
-</body>
-</html>
+{% block title %}OMPCheck{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card bg-body-tertiary border-0 shadow-sm">
+            <div class="card-body p-5 text-center">
+                <h1 class="display-5 mb-3">OMPCheck</h1>
+                <p class="lead text-secondary mb-4">
+                    Benchmark OpenMP, MPI, and pthreads programs. Upload your source, pick your
+                    thread counts, and let OMPCheck run the scaling study for you.
+                </p>
+
+                {% if user.is_authenticated %}
+                    <p class="mb-4">Welcome back, <strong>{{ user.username }}</strong>.</p>
+                    <a href="/analysis/new/" class="btn btn-primary btn-lg">Start New Analysis</a>
+                {% else %}
+                    <p class="mb-4 text-secondary">Log in or create an account to start running analyses.</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="/accounts/login/" class="btn btn-primary btn-lg">Login</a>
+                        <a href="/signup/" class="btn btn-outline-light btn-lg">Sign up</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
