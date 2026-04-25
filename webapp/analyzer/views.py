@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings
 
 import subprocess
+import shutil
 import os
 import shlex
 
@@ -12,8 +13,44 @@ from .models import AnalysisJob
 
 
 def home(request):
-    return render(request, 'analyzer/home.html')
-    
+    recent_jobs = []
+    if request.user.is_authenticated:
+        recent_jobs = AnalysisJob.objects.filter(user=request.user).order_by('-created_at')[:5]
+    return render(request, 'analyzer/home.html', {'recent_jobs': recent_jobs})
+
+@login_required
+def job_list(request):
+    jobs = AnalysisJob.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'analyzer/job_list.html', {'jobs': jobs})
+
+def _delete_job_files(job):
+    if job.uploaded_file:
+        try:
+            job.uploaded_file.delete(save=False)
+        except Exception:
+            pass
+ 
+    #per job output dir
+    output_dir = os.path.join(settings.MEDIA_ROOT, f'job_{job.id}')
+    if os.path.isdir(output_dir):
+        shutil.rmtree(output_dir, ignore_errors=True)
+ 
+ 
+@login_required
+def delete_jobs(request):
+    #delete runs 1 or more
+    if request.method != 'POST':
+        return redirect('job_list')
+ 
+    job_ids = request.POST.getlist('job_ids')
+    if job_ids:
+        jobs = AnalysisJob.objects.filter(user=request.user, id__in=job_ids)
+        for job in jobs:
+            _delete_job_files(job)
+        jobs.delete()
+ 
+    return redirect('job_list')
+
 
 def signup(request):
     if request.method == 'POST':

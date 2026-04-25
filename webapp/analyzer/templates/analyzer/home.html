@@ -3,7 +3,7 @@
 {% block title %}OMPCheck{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
+<div class="row justify-content-center mb-4">
     <div class="col-lg-8">
         <div class="card bg-body-tertiary border-0 shadow-sm">
             <div class="card-body p-5 text-center">
@@ -15,7 +15,10 @@
 
                 {% if user.is_authenticated %}
                     <p class="mb-4">Welcome back, <strong>{{ user.username }}</strong>.</p>
-                    <a href="/analysis/new/" class="btn btn-primary btn-lg">Start New Analysis</a>
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="/analysis/new/" class="btn btn-primary btn-lg">Start New Analysis</a>
+                        <a href="/analysis/" class="btn btn-outline-light btn-lg">My Runs</a>
+                    </div>
                 {% else %}
                     <p class="mb-4 text-secondary">Log in or create an account to start running analyses.</p>
                     <div class="d-flex justify-content-center gap-2">
@@ -27,4 +30,42 @@
         </div>
     </div>
 </div>
+
+{% if user.is_authenticated and recent_jobs %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card bg-body-tertiary border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h5 mb-0">Recent Runs</h2>
+                    <a href="/analysis/" class="small">View all</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for job in recent_jobs %}
+                    <a href="/analysis/{{ job.id }}/" class="list-group-item list-group-item-action bg-transparent border-secondary-subtle px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-medium">{{ job.title }}</div>
+                                <div class="text-secondary small">
+                                    {{ job.get_paradigm_display }} · threads {{ job.threads }} · {{ job.created_at|date:"M j, Y H:i" }}
+                                </div>
+                            </div>
+                            {% if job.status == 'done' %}
+                                <span class="badge bg-success">Done</span>
+                            {% elif job.status == 'failed' %}
+                                <span class="badge bg-danger">Failed</span>
+                            {% elif job.status == 'running' %}
+                                <span class="badge bg-warning text-dark">Running</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ job.get_status_display }}</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

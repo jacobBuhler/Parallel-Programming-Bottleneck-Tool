@@ -114,8 +114,16 @@
     </div>
 </div>
 
-<div class="d-flex gap-2">
-    <a href="/analysis/new/" class="btn btn-primary">Run Another Analysis</a>
-    <a href="/" class="btn btn-outline-light">Back Home</a>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex gap-2">
+        <a href="/analysis/new/" class="btn btn-primary">Run Another Analysis</a>
+        <a href="/analysis/" class="btn btn-outline-light">My Runs</a>
+        <a href="/" class="btn btn-outline-light">Back Home</a>
+    </div>
+    <form method="post" action="/analysis/delete/" onsubmit="return confirm('Delete this run? This cannot be undone.');">
+        {% csrf_token %}
+        <input type="hidden" name="job_ids" value="{{ job.id }}">
+        <button type="submit" class="btn btn-outline-danger">Delete Run</button>
+    </form>
 </div>
 {% endblock %}
