@@ -80,11 +80,11 @@ def _compile_command(upload_path, compiled_path, paradigm):
         base[0] = 'mpicxx' if is_cpp else 'mpicc'
     return base
 
-def _ompcheck_run_args(ompcheck_path, paradigm, threads, runs, csv_path, report_path, program_path, extra_args):
+def _paracheck_run_args(paracheck_path, paradigm, threads, runs, csv_path, report_path, program_path, extra_args):
     #build the full command
     extra = shlex.split(extra_args) if extra_args.strip() else []
     return [
-        str(ompcheck_path),
+        str(paracheck_path),
         '--threads', threads,
         '--runs', str(runs),
         '--csv', csv_path,
@@ -135,10 +135,10 @@ def new_analysis(request):
 
             try:
                 project_root = settings.BASE_DIR.parent
-                ompcheck_path = project_root / 'bin' / 'ompcheck'
+                paracheck_path = project_root / 'bin' / 'paracheck'
 
-                command = _ompcheck_run_args(
-                    ompcheck_path = ompcheck_path,
+                command = _paracheck_run_args(
+                    paracheck_path = paracheck_path,
                     paradigm = paradigm,
                     threads = job.threads,
                     runs = job.runs,
@@ -166,6 +166,17 @@ def new_analysis(request):
                 job.runtime_plot.name = f'job_{job.id}/results_runtime.png'
                 job.speedup_plot.name = f'job_{job.id}/results_speedup.png'
                 job.efficiency_plot.name = f'job_{job.id}/results_efficiency.png'
+                proj_runtime = os.path.join(output_dir, 'results_projected_runtime.png')
+                proj_speedup = os.path.join(output_dir, 'results_projected_speedup.png')
+                proj_efficiency = os.path.join(output_dir, 'results_projected_efficiency.png')
+                if os.path.isfile(proj_runtime):
+                    job.projected_runtime_plot.name = f'job_{job.id}/results_projected_runtime.png'
+
+                if os.path.isfile(proj_speedup):
+                    job.projected_speedup_plot.name = f'job_{job.id}/results_projected_speedup.png'
+
+                if os.path.isfile(proj_efficiency):
+                    job.projected_efficiency_plot.name = f'job_{job.id}/results_projected_efficiency.png'
 
                 job.status = 'done'
 
@@ -180,7 +191,6 @@ def new_analysis(request):
         form = AnalysisJobForm()
 
     return render(request, 'analyzer/new_analysis.html', {'form': form})
-
 
 @login_required
 def job_detail(request, job_id):

@@ -1,0 +1,62 @@
+ParaCheck Scaling Diagnosis Report
+
+Machine
+-------
+CPU:      AMD Ryzen 5 5600X 6-Core Processor
+Cores:    6 physical / 12 logical (SMT enabled)
+Memory:   7 GB
+Kernel:   Linux 5.15.167.4-microsoft-standard-WSL2
+Compiler: g++ 11.4.0
+
+Note: requested thread counts exceed this machine's physical core count (6). Efficiency drop above 6 threads is expected and may dominate the diagnosis.
+
+Overall Verdict
+---------------
+Verdict:    SMT/hyperthread saturation
+Confidence: high
+Speedup degrades above 6 threads, which equals this machine's physical core count. Threads beyond that share execution resources with their physical-core siblings (SMT), so each additional thread contributes only a fraction of a core's throughput.
+
+Threads | Avg Time | Min Time | Max Time | Std Dev | Speedup | Ideal | Efficiency | Serial Fraction | Max Theoretical Speedup
+--------------------------------------------------------------------------------------------------------------------------------
+      1 | 0.675342 | 0.672525 | 0.676872 | 0.001585 |   1.000 | 1.000 |      1.000 |               - |                       -
+      2 | 0.360100 | 0.344394 | 0.371519 | 0.010812 |   1.875 | 2.000 |      0.938 |          0.0664 |                  15.055
+      3 | 0.248552 | 0.230212 | 0.271174 | 0.016053 |   2.717 | 3.000 |      0.906 |          0.0521 |                  19.209
+      4 | 0.210854 | 0.201206 | 0.225377 | 0.008534 |   3.203 | 4.000 |      0.801 |          0.0830 |                  12.054
+      5 | 0.178808 | 0.167001 | 0.196964 | 0.010286 |   3.777 | 5.000 |      0.755 |          0.0810 |                  12.352
+      6 | 0.156921 | 0.152543 | 0.160676 | 0.003467 |   4.304 | 6.000 |      0.717 |          0.0788 |                  12.686
+      7 | 0.143745 | 0.138912 | 0.147245 | 0.002836 |   4.698 | 7.000 |      0.671 |          0.0817 |                  12.246
+      8 | 0.134994 | 0.127094 | 0.142814 | 0.005268 |   5.003 | 8.000 |      0.625 |          0.0856 |                  11.684
+
+Projected Results (Amdahl-based)
+Serial fraction used for projection: 0.0856
+Threads | Predicted Speedup | Predicted Time | Predicted Efficiency
+----------------------------------------------------------------
+     16 |             7.006 |       0.096398 |                0.438
+     32 |             8.759 |       0.077100 |                0.274
+     64 |            10.012 |       0.067451 |                0.156
+
+Resource Usage (averaged per thread count)
+Threads | User Time | System Time | Util  | Max RSS (KB) | Vol Ctx | Invol Ctx
+------------------------------------------------------------------------------------
+      1 |    0.6719 |      0.0020 |  0.99 |         2229 |       0 |         1
+      2 |    0.7101 |      0.0000 |  0.99 |         2264 |       0 |        17
+      3 |    0.7248 |      0.0000 |  0.97 |         2256 |       1 |         1
+      4 |    0.7998 |      0.0000 |  0.95 |         2291 |       4 |        18
+      5 |    0.8276 |      0.0000 |  0.93 |         2273 |       4 |         1
+      6 |    0.8657 |      0.0000 |  0.92 |         2292 |       6 |        18
+      7 |    0.9385 |      0.0000 |  0.93 |         2332 |       6 |         0
+      8 |    0.9925 |      0.0000 |  0.92 |         2303 |       7 |         3
+
+Util = user_time / (wall_time * threads). 1.0 = every thread fully busy doing user work; lower = threads stalled, sleeping, or waiting.
+
+Interpretation
+--------------
+1 -> 2 threads: Involuntary context-switches spiked (1 -> 17). Likely oversubscription or scheduler contention.
+2 -> 3 threads: Timing variability is high, so benchmark results may be noisy.
+3 -> 4 threads: Involuntary context-switches spiked (1 -> 18). Likely oversubscription or scheduler contention.
+4 -> 5 threads: Timing variability is high, so benchmark results may be noisy.
+5 -> 6 threads: Involuntary context-switches spiked (1 -> 18). Likely oversubscription or scheduler contention.
+6 -> 7 threads: Scaling appears healthy.
+7 -> 8 threads: Scaling appears healthy.
+
+Projection note: future speedup was estimated with Amdahl's Law using the serial fraction from the highest measured thread count. At 64 threads, projected speedup is 10.012 with predicted efficiency 0.156.

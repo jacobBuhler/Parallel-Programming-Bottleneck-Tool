@@ -1,0 +1,54 @@
+ParaCheck Scaling Diagnosis Report
+
+Machine
+-------
+CPU:      AMD Ryzen 5 5600X 6-Core Processor
+Cores:    6 physical / 12 logical (SMT enabled)
+Memory:   7 GB
+Kernel:   Linux 5.15.167.4-microsoft-standard-WSL2
+Compiler: g++ 11.4.0
+
+Overall Verdict
+---------------
+Verdict:    Healthy scaling
+Confidence: high
+Measured speedup at 6 threads is 4.40x (73% efficiency). The program scales well across the tested range with no clear bottleneck.
+
+Threads | Avg Time | Min Time | Max Time | Std Dev | Speedup | Ideal | Efficiency | Serial Fraction | Max Theoretical Speedup
+--------------------------------------------------------------------------------------------------------------------------------
+      1 | 3.820402 | 3.773482 | 3.858451 | 0.032636 |   1.000 | 1.000 |      1.000 |               - |                       -
+      2 | 2.062008 | 2.054949 | 2.076688 | 0.007732 |   1.853 | 2.000 |      0.926 |          0.0795 |                  12.583
+      3 | 1.453230 | 1.428409 | 1.475078 | 0.017857 |   2.629 | 3.000 |      0.876 |          0.0706 |                  14.168
+      4 | 1.163193 | 1.134641 | 1.222871 | 0.030958 |   3.284 | 4.000 |      0.821 |          0.0726 |                  13.769
+      5 | 0.971290 | 0.946130 | 1.000396 | 0.021511 |   3.933 | 5.000 |      0.787 |          0.0678 |                  14.750
+      6 | 0.867576 | 0.847381 | 0.913775 | 0.024637 |   4.404 | 6.000 |      0.734 |          0.0725 |                  13.792
+
+Projected Results (Amdahl-based)
+Serial fraction used for projection: 0.0725
+Threads | Predicted Speedup | Predicted Time | Predicted Efficiency
+----------------------------------------------------------------
+     12 |             6.676 |       0.572294 |                0.556
+     24 |             8.997 |       0.424653 |                0.375
+     48 |            10.890 |       0.350832 |                0.227
+
+Resource Usage (averaged per thread count)
+Threads | User Time | System Time | Util  | Max RSS (KB) | Vol Ctx | Invol Ctx
+------------------------------------------------------------------------------------
+      1 |    3.8143 |      0.0000 |  1.00 |         2032 |       1 |         4
+      2 |    3.9655 |      0.0020 |  0.96 |         2007 |       2 |         4
+      3 |    4.1688 |      0.0000 |  0.96 |         1991 |       3 |         5
+      4 |    4.3981 |      0.0000 |  0.95 |         2024 |       3 |         5
+      5 |    4.5488 |      0.0000 |  0.94 |         2002 |       3 |        21
+      6 |    4.8790 |      0.0020 |  0.94 |         2071 |       3 |        42
+
+Util = user_time / (wall_time * threads). 1.0 = every thread fully busy doing user work; lower = threads stalled, sleeping, or waiting.
+
+Interpretation
+--------------
+1 -> 2 threads: Scaling appears healthy.
+2 -> 3 threads: Scaling appears healthy.
+3 -> 4 threads: Scaling appears healthy.
+4 -> 5 threads: Scaling appears healthy.
+5 -> 6 threads: Scaling appears healthy.
+
+Projection note: future speedup was estimated with Amdahl's Law using the serial fraction from the highest measured thread count. At 48 threads, projected speedup is 10.890 with predicted efficiency 0.227.

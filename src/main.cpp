@@ -1,5 +1,4 @@
-//main omp checker file
-
+//main para checker file
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -15,10 +14,24 @@
 
 #include <unistd.h> //fork & execvp
 #include <sys/wait.h> //waitpid, WIFEXITED & WEXITSTATUS
+#include <sys/resource.h> //wait4 & struct rusage
 
 #include "diagnosis.h"
 
 enum class Paradigm { OpenMP, MPI, Pthreads};
+
+//convert a kernel struct rusage into our project's RusageMetrics.
+static RusageMetrics rusage_to_metrics(const struct rusage& ru){
+    RusageMetrics m{};
+    m.user_time = (double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec * 1e-6;
+    m.system_time = (double)ru.ru_stime.tv_sec + (double)ru.ru_stime.tv_usec * 1e-6;
+    m.max_rss = ru.ru_maxrss;
+    m.voluntary_ctx_switches = ru.ru_nvcsw;
+    m.involuntary_ctx_switches = ru.ru_nivcsw;
+    m.minor_page_faults = ru.ru_minflt;
+    m.major_page_faults = ru.ru_majflt;
+    return m;
+}
 
 static Paradigm parse_paradigm(const std::string& s){
     if(s == "openmp") return Paradigm::OpenMP;
@@ -66,27 +79,29 @@ static std::vector<int> parse_threads(const std::string& s){
 }
 
 //runs the target program using fork + execvp functions
-//fork creates a new process
-static int run_child(char* const child_argv[]){
+//fork creates a new process and wait4 allows us tto captue rusage in same call
+static int run_child(char* const child_argv[], RusageMetrics* out_ru = nullptr){
     pid_t pid = fork();
     if(pid < 0){
         std::perror("fork");
         return -1;
     }
-
+ 
     if(pid == 0){
         execvp(child_argv[0], child_argv);
         std::perror("execvp");
         _exit(127); //exit child
     }
-
+ 
     int status = 0;
-    
-    if(waitpid(pid, &status, 0) < 0){
-        std::perror("waitpid");
+    struct rusage ru{};
+ 
+    if(wait4(pid, &status, 0, &ru) < 0){
+        std::perror("wait4");
         return -1;
     }
-
+ 
+    if(out_ru) *out_ru = rusage_to_metrics(ru);
     return status;
 }
 
@@ -117,12 +132,11 @@ static void run_plot_script(const std::string& csv_path, const std::string& titl
     }
 }
 
-static int run_with_paradigm(Paradigm paradigm, int thread_count, char* const user_argv[], int user_argc){
+static int run_with_paradigm(Paradigm paradigm, int thread_count, char* const user_argv[], int user_argc, RusageMetrics* out_ru = nullptr){
     switch(paradigm){
- 
     case Paradigm::OpenMP:
         setenv("OMP_NUM_THREADS", std::to_string(thread_count).c_str(), 1);//set OpenMP thread count
-        return run_child(user_argv);
+        return run_child(user_argv, out_ru);
  
     case Paradigm::MPI: {
         std::string np_str = std::to_string(thread_count);
@@ -133,7 +147,7 @@ static int run_with_paradigm(Paradigm paradigm, int thread_count, char* const us
         v.push_back(np_str.c_str());
         for(int k = 0; k < user_argc; ++k) v.push_back(user_argv[k]);
         v.push_back(nullptr);
-        return run_child(const_cast<char* const*>(v.data()));
+        return run_child(const_cast<char* const*>(v.data()), out_ru);
     }
     case Paradigm::Pthreads: {
         std::string n_str = std::to_string(thread_count);
@@ -142,10 +156,10 @@ static int run_with_paradigm(Paradigm paradigm, int thread_count, char* const us
         v.push_back(n_str.c_str());
         for(int k = 1; k < user_argc; ++k) v.push_back(user_argv[k]);
         v.push_back(nullptr);
-        return run_child(const_cast<char* const*>(v.data()));
+        return run_child(const_cast<char* const*>(v.data()), out_ru);
     }
     }
-    return -1; //unreachebale
+    return -1;//unreachebale
 }
 
 //main func
@@ -212,6 +226,7 @@ int main(int argc, char** argv){
     auto threads = parse_threads(threads_arg);//convert thread list to vector<int>
 
     std::vector<std::vector<double>> all_times;
+    std::vector<std::vector<RusageMetrics>> all_rusage;
 
     std::ofstream csv;
     if(csv_enabled){//open csv if req
@@ -221,6 +236,9 @@ int main(int argc, char** argv){
             return 1;
         }
     }
+
+    MachineInfo machine = detect_machine_info();
+    print_machine_info(machine);
 
     std::cout << "Command: ";
     for(int k = i; k < argc; ++k){
@@ -236,17 +254,19 @@ int main(int argc, char** argv){
             csv << argv[k] << (k + 1 < argc ? " " : "");
         }
         csv << "\n";
-        csv << "threads,trial,time\n";
+        csv << "threads,trial,time,user_time,system_time,max_rss,vol_ctx,invol_ctx\n";
     }
     
     for(size_t idx = 0; idx < threads.size(); ++idx){//loop over each thread count
         int t = threads[idx];
         setenv("OMP_NUM_THREADS", std::to_string(t).c_str(), 1);//set OpenMP thread count
         std::vector<double> thread_times;
+        std::vector<RusageMetrics> thread_rusage;
         
         for(int r = 0; r < runs; ++r){
+            RusageMetrics ru{};
             double t0 = now_seconds_monotonic();//timer start
-            int status = run_with_paradigm(paradigm, t, child_argv, child_argc);//run target program
+            int status = run_with_paradigm(paradigm, t, child_argv, child_argc, &ru);//run target program
             double t1 = now_seconds_monotonic();//end timer
 
             if(!status_ok(status)){//check for failure
@@ -256,17 +276,27 @@ int main(int argc, char** argv){
 
             double elapsed = t1 - t0;
             thread_times.push_back(elapsed);
+            thread_rusage.push_back(ru);
 
             if(csv_enabled){
-                csv << t << "," << (r+1) << "," << std::fixed << std::setprecision(9) << elapsed << "\n";
+                csv << t << "," << (r+1)
+                    << "," << std::fixed << std::setprecision(9) << elapsed
+                    << "," << std::setprecision(6) << ru.user_time
+                    << "," << std::setprecision(6) << ru.system_time
+                    << "," << ru.max_rss
+                    << "," << ru.voluntary_ctx_switches
+                    << "," << ru.involuntary_ctx_switches
+                    << "\n";
             }
         }
         all_times.push_back(thread_times);
+        all_rusage.push_back(thread_rusage);
         
     }
 
     //compute scaling metrics and diagnostics
     auto results = build_scaling_results(threads, all_times);
+    attach_rusage_to_results(results, all_rusage);
     auto projected_threads = build_default_projection_threads(results);
     auto projected_results = build_projected_scaling_results(results, projected_threads);
     double projection_serial_fraction = 0.0;
@@ -274,14 +304,16 @@ int main(int argc, char** argv){
         projection_serial_fraction = results.back().serial_fraction;
     }
 
+    OverallVerdict overall = compute_overall_verdict(results, machine);
     //print resilts to terminal
     print_scaling_summary(results);
     print_projected_scaling_summary(projected_results, projection_serial_fraction);
-    print_diagnosis(results);
+    print_overall_verdict(overall);
+    print_diagnosis(results, machine);
     
 
     //write report file
-    write_diagnosis_report(results, projected_results, projection_serial_fraction, report_path);
+    write_diagnosis_report(results, projected_results, projection_serial_fraction, machine, overall, report_path);
 
     if(csv_enabled){//close file
     csv.flush();
@@ -289,7 +321,7 @@ int main(int argc, char** argv){
     }
 
     if(plot_enabled){
-        run_plot_script(csv_path, "OMPCheck Scaling Results");
+        run_plot_script(csv_path, "ParaCheck Scaling Results");
         std::cout << "\nPlots generated from: " << csv_path << "\n";
     }
 

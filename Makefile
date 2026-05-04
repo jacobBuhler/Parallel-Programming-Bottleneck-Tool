@@ -11,7 +11,7 @@ TST_DIR = tests
 OUT_DIR = output
 PLT_DIR = plots
 
-TARGET  = $(BIN_DIR)/ompcheck
+TARGET  = $(BIN_DIR)/paracheck
 GOOD    = $(BIN_DIR)/good_omp
 BAD     = $(BIN_DIR)/bad_omp
 

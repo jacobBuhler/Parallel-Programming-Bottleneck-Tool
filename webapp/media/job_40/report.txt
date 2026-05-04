@@ -1,0 +1,62 @@
+ParaCheck Scaling Diagnosis Report
+
+Machine
+-------
+CPU:      AMD Ryzen 5 5600X 6-Core Processor
+Cores:    6 physical / 12 logical (SMT enabled)
+Memory:   7 GB
+Kernel:   Linux 5.15.167.4-microsoft-standard-WSL2
+Compiler: g++ 11.4.0
+
+Note: requested thread counts exceed this machine's physical core count (6). Efficiency drop above 6 threads is expected and may dominate the diagnosis.
+
+Overall Verdict
+---------------
+Verdict:    Cache contention or false sharing
+Confidence: high
+Speedup never exceeded 1.2x at any tested thread count (final: 0.09x at 8 threads). This is the signature of shared-memory traffic dominating, typically false sharing or cache-line bouncing.
+
+Threads | Avg Time | Min Time | Max Time | Std Dev | Speedup | Ideal | Efficiency | Serial Fraction | Max Theoretical Speedup
+--------------------------------------------------------------------------------------------------------------------------------
+      1 | 1.108341 | 1.101833 | 1.119732 | 0.006392 |   1.000 | 1.000 |      1.000 |               - |                       -
+      2 | 3.650626 | 3.572998 | 3.839784 | 0.097405 |   0.304 | 2.000 |      0.152 |          1.0000 |                   1.000
+      3 | 6.400734 | 6.339130 | 6.461943 | 0.051208 |   0.173 | 3.000 |      0.058 |          1.0000 |                   1.000
+      4 | 8.107083 | 8.050452 | 8.171037 | 0.046205 |   0.137 | 4.000 |      0.034 |          1.0000 |                   1.000
+      5 | 9.361023 | 9.249413 | 9.432181 | 0.067962 |   0.118 | 5.000 |      0.024 |          1.0000 |                   1.000
+      6 | 10.842010 | 10.788068 | 10.867741 | 0.031693 |   0.102 | 6.000 |      0.017 |          1.0000 |                   1.000
+      7 | 11.215274 | 10.588099 | 11.844163 | 0.518556 |   0.099 | 7.000 |      0.014 |          1.0000 |                   1.000
+      8 | 11.835983 | 11.424025 | 12.225900 | 0.259025 |   0.094 | 8.000 |      0.012 |          1.0000 |                   1.000
+
+Projected Results (Amdahl-based)
+Serial fraction used for projection: 1.0000
+Threads | Predicted Speedup | Predicted Time | Predicted Efficiency
+----------------------------------------------------------------
+     16 |             1.000 |       1.108341 |                0.062
+     32 |             1.000 |       1.108341 |                0.031
+     64 |             1.000 |       1.108341 |                0.016
+
+Resource Usage (averaged per thread count)
+Threads | User Time | System Time | Util  | Max RSS (KB) | Vol Ctx | Invol Ctx
+------------------------------------------------------------------------------------
+      1 |    1.1047 |      0.0000 |  1.00 |         2282 |       0 |         2
+      2 |    7.2982 |      0.0000 |  1.00 |         2276 |       1 |         6
+      3 |   19.1781 |      0.0000 |  1.00 |         2279 |       1 |        14
+      4 |   32.3544 |      0.0000 |  1.00 |         2271 |       2 |        20
+      5 |   46.5221 |      0.0020 |  0.99 |         2326 |       5 |       104
+      6 |   64.8388 |      0.0040 |  1.00 |         2315 |       5 |       175
+      7 |   77.2627 |      0.0080 |  0.98 |         2315 |       6 |       912
+      8 |   83.4700 |      0.0220 |  0.88 |         2320 |      81 |      2137
+
+Util = user_time / (wall_time * threads). 1.0 = every thread fully busy doing user work; lower = threads stalled, sleeping, or waiting.
+
+Interpretation
+--------------
+1 -> 2 threads: Poor efficiency detected. Possible causes include synchronization overhead, load imbalance, or memory bandwidth limits.
+2 -> 3 threads: Poor efficiency detected. Possible causes include synchronization overhead, load imbalance, or memory bandwidth limits.
+3 -> 4 threads: Poor efficiency detected. Possible causes include synchronization overhead, load imbalance, or memory bandwidth limits.
+4 -> 5 threads: Poor efficiency detected. Possible causes include synchronization overhead, load imbalance, or memory bandwidth limits.
+5 -> 6 threads: Poor efficiency detected. Possible causes include synchronization overhead, load imbalance, or memory bandwidth limits.
+6 -> 7 threads: Involuntary context-switches spiked (175 -> 912). Likely oversubscription or scheduler contention.
+7 -> 8 threads: Poor efficiency detected. Possible causes include synchronization overhead, load imbalance, or memory bandwidth limits.
+
+Projection note: future speedup was estimated with Amdahl's Law using the serial fraction from the highest measured thread count. At 64 threads, projected speedup is 1.000 with predicted efficiency 0.016.

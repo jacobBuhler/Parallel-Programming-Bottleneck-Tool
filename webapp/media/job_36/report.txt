@@ -1,0 +1,50 @@
+ParaCheck Scaling Diagnosis Report
+
+Machine
+-------
+CPU:      AMD Ryzen 5 5600X 6-Core Processor
+Cores:    6 physical / 12 logical (SMT enabled)
+Memory:   7 GB
+Kernel:   Linux 5.15.167.4-microsoft-standard-WSL2
+Compiler: g++ 11.4.0
+
+Note: requested thread counts exceed this machine's physical core count (6). Efficiency drop above 6 threads is expected and may dominate the diagnosis.
+
+Overall Verdict
+---------------
+Verdict:    Cache contention or false sharing
+Confidence: high
+Speedup never exceeded 1.2x at any tested thread count (final: 0.90x at 8 threads). This is the signature of shared-memory traffic dominating, typically false sharing or cache-line bouncing.
+
+Threads | Avg Time | Min Time | Max Time | Std Dev | Speedup | Ideal | Efficiency | Serial Fraction | Max Theoretical Speedup
+--------------------------------------------------------------------------------------------------------------------------------
+      1 | 0.691976 | 0.686228 | 0.706061 | 0.007245 |   1.000 | 1.000 |      1.000 |               - |                       -
+      2 | 0.876805 | 0.826151 | 1.064131 | 0.093700 |   0.789 | 2.000 |      0.395 |          1.0000 |                   1.000
+      4 | 0.859228 | 0.838153 | 0.870220 | 0.011425 |   0.805 | 4.000 |      0.201 |          1.0000 |                   1.000
+      8 | 0.772544 | 0.771684 | 0.774685 | 0.001109 |   0.896 | 8.000 |      0.112 |          1.0000 |                   1.000
+
+Projected Results (Amdahl-based)
+Serial fraction used for projection: 1.0000
+Threads | Predicted Speedup | Predicted Time | Predicted Efficiency
+----------------------------------------------------------------
+     16 |             1.000 |       0.691976 |                0.062
+     32 |             1.000 |       0.691976 |                0.031
+     64 |             1.000 |       0.691976 |                0.016
+
+Resource Usage (averaged per thread count)
+Threads | User Time | System Time | Util  | Max RSS (KB) | Vol Ctx | Invol Ctx
+------------------------------------------------------------------------------------
+      1 |    0.6905 |      0.0000 |  1.00 |         2233 |       1 |         0
+      2 |    1.7017 |      0.0000 |  0.97 |         2256 |       1 |        19
+      4 |    3.3926 |      0.0000 |  0.99 |         2289 |       2 |         3
+      8 |    6.0851 |      0.0000 |  0.98 |         2322 |       9 |         7
+
+Util = user_time / (wall_time * threads). 1.0 = every thread fully busy doing user work; lower = threads stalled, sleeping, or waiting.
+
+Interpretation
+--------------
+1 -> 2 threads: Timing variability is high, so benchmark results may be noisy.
+2 -> 4 threads: Poor efficiency detected. Possible causes include synchronization overhead, load imbalance, or memory bandwidth limits.
+4 -> 8 threads: Poor efficiency detected. Possible causes include synchronization overhead, load imbalance, or memory bandwidth limits.
+
+Projection note: future speedup was estimated with Amdahl's Law using the serial fraction from the highest measured thread count. At 64 threads, projected speedup is 1.000 with predicted efficiency 0.016.

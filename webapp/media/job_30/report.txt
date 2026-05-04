@@ -1,0 +1,40 @@
+OMPCheck Scaling Diagnosis Report
+
+Threads | Avg Time | Min Time | Max Time | Std Dev | Speedup | Ideal | Efficiency | Serial Fraction | Max Theoretical Speedup
+--------------------------------------------------------------------------------------------------------------------------------
+      1 | 0.701620 | 0.694358 | 0.725512 | 0.012000 |   1.000 | 1.000 |      1.000 |               - |                       -
+      2 | 0.469512 | 0.458499 | 0.480591 | 0.007650 |   1.494 | 2.000 |      0.747 |          0.3384 |                   2.955
+      4 | 0.363164 | 0.351407 | 0.374612 | 0.008634 |   1.932 | 4.000 |      0.483 |          0.3568 |                   2.803
+      8 | 0.315531 | 0.307600 | 0.324174 | 0.005435 |   2.224 | 8.000 |      0.278 |          0.3711 |                   2.695
+     32 | 0.299593 | 0.293780 | 0.304903 | 0.004446 |   2.342 | 32.000 |      0.073 |          0.4085 |                   2.448
+     64 | 0.298762 | 0.297043 | 0.300809 | 0.001396 |   2.348 | 64.000 |      0.037 |          0.4167 |                   2.400
+
+Projected Results (Amdahl-based)
+Serial fraction used for projection: 0.4167
+Threads | Predicted Speedup | Predicted Time | Predicted Efficiency
+----------------------------------------------------------------
+    128 |             2.374 |       0.295565 |                0.019
+    256 |             2.387 |       0.293966 |                0.009
+    512 |             2.393 |       0.293167 |                0.005
+
+Resource Usage (averaged per thread count)
+Threads | User Time | System Time | Util  | Max RSS (KB) | Vol Ctx | Invol Ctx
+------------------------------------------------------------------------------------
+      1 |    0.6911 |      0.0039 |  0.98 |         2222 |       0 |         1
+      2 |    0.7134 |      0.0000 |  0.76 |         2214 |       0 |         1
+      4 |    0.7762 |      0.0000 |  0.53 |         2300 |       2 |         1
+      8 |    0.9337 |      0.0019 |  0.37 |         2278 |       5 |         1
+     32 |    1.1197 |      0.0021 |  0.12 |         2420 |      85 |        50
+     64 |    1.1302 |      0.0000 |  0.06 |         3584 |     147 |        97
+
+Util = user_time / (wall_time * threads). 1.0 = every thread fully busy doing user work; lower = threads stalled, sleeping, or waiting.
+
+Interpretation
+--------------
+1 -> 2 threads: Parallel utilization dropped sharply (0.98 -> 0.76). This is the signature of SMT/hyperthread saturation or cache contention.
+2 -> 4 threads: Low parallel utilization (0.53). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+4 -> 8 threads: Low parallel utilization (0.37). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+8 -> 32 threads: Low parallel utilization (0.12). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+32 -> 64 threads: Low parallel utilization (0.06). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+
+Projection note: future speedup was estimated with Amdahl's Law using the serial fraction from the highest measured thread count. At 512 threads, projected speedup is 2.393 with predicted efficiency 0.005.

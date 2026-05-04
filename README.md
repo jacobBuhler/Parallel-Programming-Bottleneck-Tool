@@ -1,68 +1,106 @@
-# OMPCheck
+# ParaCheck
 
-**OMPCheck** is a command-line tool for analyzing the scalability of parallel programs.  
-It automatically runs a target program with multiple thread counts, records runtime data, and computes scaling metrics such as **speedup**, **efficiency**, and **estimated serial fraction**.
+A scaling-bottleneck diagnostic tool for parallel programs. ParaCheck benchmarks a target program across multiple thread or process counts, computes scaling metrics, and produces a plain-language diagnosis of *why* the program isn't scaling.
 
-The goal of this project is to help developers quickly determine whether their parallel programs are **scaling properly** and identify potential **performance bottlenecks**.
+Supports **OpenMP**, **MPI**, and **pthreads** through a single C++17 driver. Includes a Django web interface for users who'd rather not use a terminal
 
 
-## Features
+## What it does
 
-- **Automatic multi-thread benchmarking**
-- Runs multiple trials per thread count for stable measurements
-- Computes important scaling metrics:
-  - **Average runtime**
-  - **Speedup**
-  - **Parallel efficiency**
-  - **Serial fraction (Amdahl's Law estimate)**
-- Generates a **scaling diagnosis report**
-- **CSV export** of benchmark results
-- **plot generation** using Python
+Point ParaCheck at any parallel executable and it will:
+
+1. Sweep the program across a list of thread or process counts.
+2. Run multiple trials per count with monotonic-clock timing.
+3. Capture per-run resource usage (CPU time, RSS, context switches).
+4. Compute speedup, efficiency, Karp–Flatt serial fraction, and parallel utilization.
+5. Project performance at higher thread counts using Amdahl's Law.
+6. Generate six PNG plots (three measured, three projected).
+7. Produce a diagnosis report classifying the run as healthy, Amdahl-bound, sync-overhead-bound, false-sharing-bound, or SMT-saturated.
 
 
 ## Requirements
 
-- **C++17 compatible compiler**
-- **Python 3**
-- Python package:
-  - `matplotlib`
+- Linux or WSL2
+- `g++` (C++17)
+- Python 3 with `matplotlib`
+- Optional: `mpicc` / `mpirun` for MPI workloads
+- For the web app: Django 5
 
-Install matplotlib if needed:
+
+## Quick start — CLI
 
 ```bash
 pip install matplotlib
-```
-
-## Build
-
-Compile the program using the provided **Makefile**:
-```bash
 make
+
+./bin/paracheck --threads 1,2,4,8 --runs 5 \
+    --csv output/results.csv --plot \
+    --report output/report.txt \
+    --paradigm openmp \
+    -- ./bin/good_omp 80000000
 ```
 
-Clean the build files:
+Results land in `output/`: a CSV, a diagnosis report, and six PNG plots.
+
+
+## Quick start — Web app
+
 ```bash
-make clean
+cd webapp
+python -m venv ../venv
+source ../venv/bin/activate
+pip install django
+
+python manage.py migrate
+python manage.py runserver
 ```
 
-## Usage
+Open `http://localhost:8000/`. Sign up, click **New Analysis**, upload a `.c` or `.cpp` source file, pick a paradigm, and submit. ParaCheck compiles, runs, and shows you the report and plots when it's done. Past runs live on the **My Runs** page.
 
-Basic usage:
-```bash
-./ompcheck --threads 1,2,4,8 -- ./target_program
+
+## Command-line options
+
+| Flag | Description |
+|---|---|
+| `--threads` | Comma-separated thread/process counts (e.g. `1,2,4,8`). Required. |
+| `--runs N` | Trials per count (default: 5). |
+| `--paradigm P` | `openmp`, `mpi`, or `pthreads` (default: `openmp`). |
+| `--csv FILE` | Write per-trial CSV. |
+| `--plot` | Generate plots from the CSV. Requires `--csv`. |
+| `--report FILE` | Write the diagnosis report. |
+| `--` | End of ParaCheck flags. Everything after is the target program and its args. |
+
+
+## Test programs
+
+The `tests/` directory contains eight reference workloads — each one designed to trigger a different branch of the diagnosis classifier:
+
+| File | Paradigm | Demonstrates |
+|---|---|---|
+| `good_omp.c` | OpenMP | Healthy CPU-bound scaling |
+| `bad_critical_omp.c` | OpenMP | `critical` lock contention |
+| `amdahl_omp.c` | OpenMP | Fixed 30% serial section |
+| `false_sharing_omp.c` | OpenMP | Cache-line bouncing |
+| `good_mpi.c` | MPI | Healthy distributed reduction |
+| `chatty_mpi.c` | MPI | Per-iteration `MPI_Allreduce` overhead |
+| `good_pthreads.c` | pthreads | Healthy independent threads |
+| `mutex_pthreads.c` | pthreads | Global mutex contention |
+
+Upload any of them through the web UI, or compile manually and run via the CLI.
+
+
+## Project structure
+
 ```
-
-Example with additional options:
-```bash
-./ompcheck --threads 1,2,4,8 --runs 5 --csv results.csv --plot -- ./target_program
+Parallel-Programming-Bottleneck-Tool/
+├── src/
+│   ├── main.cpp           # CLI driver
+│   ├── diagnosis.cpp      # scaling math & diagnosis rules
+│   └── diagnosis.h
+├── scripts/
+│   └── plot_results.py    # plot generator
+├── tests/                 # reference workloads
+├── webapp/                # Django web interface
+├── Makefile
+└── README.md
 ```
-
-## Command Line Options
-
-| Option | Description |
-|------|------|
-| `--threads` | Comma-separated list of thread counts |
-| `--runs` | Number of runs per thread configuration (default: 5) |
-| `--csv` | Output benchmark data to CSV |
-| `--plot` | Generate plots from the CSV results |
-| `--report` | Output scaling diagnosis report |

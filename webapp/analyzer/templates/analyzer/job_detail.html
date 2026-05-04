@@ -1,6 +1,6 @@
 {% extends 'analyzer/base.html' %}
 
-{% block title %}{{ job.title }} - OMPCheck{% endblock %}
+{% block title %}{{ job.title }} - ParaCheck{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -88,6 +88,34 @@
                 <div class="col-lg-4">
                     <div class="meta-label mb-2">Efficiency</div>
                     <img src="{{ job.efficiency_plot.url }}" class="plot-img" alt="Efficiency plot">
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if job.projected_runtime_plot or job.projected_speedup_plot or job.projected_efficiency_plot %}
+<div class="card bg-body-tertiary border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+        <h2 class="h5 mb-3">Projected</h2>
+        <div class="row g-4">
+            {% if job.projected_runtime_plot %}
+                <div class="col-lg-4">
+                    <div class="meta-label mb-2">Projected Runtime</div>
+                    <img src="{{ job.projected_runtime_plot.url }}" class="plot-img" alt="Projected runtime plot">
+                </div>
+            {% endif %}
+            {% if job.projected_speedup_plot %}
+                <div class="col-lg-4">
+                    <div class="meta-label mb-2">Projected Speedup</div>
+                    <img src="{{ job.projected_speedup_plot.url }}" class="plot-img" alt="Projected speedup plot">
+                </div>
+            {% endif %}
+            {% if job.projected_efficiency_plot %}
+                <div class="col-lg-4">
+                    <div class="meta-label mb-2">Projected Efficiency</div>
+                    <img src="{{ job.projected_efficiency_plot.url }}" class="plot-img" alt="Projected efficiency plot">
                 </div>
             {% endif %}
         </div>

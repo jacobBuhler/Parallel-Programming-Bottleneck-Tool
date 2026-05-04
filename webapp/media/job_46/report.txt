@@ -1,0 +1,50 @@
+ParaCheck Scaling Diagnosis Report
+
+Machine
+-------
+CPU:      AMD Ryzen 5 5600X 6-Core Processor
+Cores:    6 physical / 12 logical (SMT enabled)
+Memory:   7 GB
+Kernel:   Linux 5.15.167.4-microsoft-standard-WSL2
+Compiler: g++ 11.4.0
+
+Note: requested thread counts exceed this machine's physical core count (6). Efficiency drop above 6 threads is expected and may dominate the diagnosis.
+
+Overall Verdict
+---------------
+Verdict:    Amdahl-bound serial fraction
+Confidence: high
+Karp-Flatt serial fraction averages 19% and stays roughly constant across thread counts. Maximum attainable speedup is bounded by Amdahl's Law at ~5.3x.
+
+Threads | Avg Time | Min Time | Max Time | Std Dev | Speedup | Ideal | Efficiency | Serial Fraction | Max Theoretical Speedup
+--------------------------------------------------------------------------------------------------------------------------------
+      1 | 4.782759 | 4.709769 | 4.827852 | 0.043245 |   1.000 | 1.000 |      1.000 |               - |                       -
+      2 | 2.788192 | 2.729636 | 2.859375 | 0.041979 |   1.715 | 2.000 |      0.858 |          0.1659 |                   6.026
+      4 | 1.879683 | 1.831604 | 1.967334 | 0.049472 |   2.544 | 4.000 |      0.636 |          0.1907 |                   5.244
+      8 | 1.490313 | 1.430404 | 1.532356 | 0.037678 |   3.209 | 8.000 |      0.401 |          0.2133 |                   4.689
+
+Projected Results (Amdahl-based)
+Serial fraction used for projection: 0.2133
+Threads | Predicted Speedup | Predicted Time | Predicted Efficiency
+----------------------------------------------------------------
+     16 |             3.811 |       1.255138 |                0.238
+     32 |             4.204 |       1.137551 |                0.131
+     64 |             4.434 |       1.078757 |                0.069
+
+Resource Usage (averaged per thread count)
+Threads | User Time | System Time | Util  | Max RSS (KB) | Vol Ctx | Invol Ctx
+------------------------------------------------------------------------------------
+      1 |    4.3906 |      0.0611 |  0.92 |       115214 |    1410 |        56
+      2 |    4.8158 |      0.0630 |  0.86 |       115464 |    2615 |       105
+      4 |    5.6510 |      0.0999 |  0.75 |       114923 |    5703 |        89
+      8 |    7.5882 |      0.4035 |  0.64 |       114636 |   11826 |       368
+
+Util = user_time / (wall_time * threads). 1.0 = every thread fully busy doing user work; lower = threads stalled, sleeping, or waiting.
+
+Interpretation
+--------------
+1 -> 2 threads: Estimated serial fraction is noticeable, so Amdahl's Law may be limiting additional speedup.
+2 -> 4 threads: Estimated serial fraction is noticeable, so Amdahl's Law may be limiting additional speedup.
+4 -> 8 threads: Low parallel utilization (0.64). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+
+Projection note: future speedup was estimated with Amdahl's Law using the serial fraction from the highest measured thread count. At 64 threads, projected speedup is 4.434 with predicted efficiency 0.069.

@@ -1,0 +1,34 @@
+OMPCheck Scaling Diagnosis Report
+
+Threads | Avg Time | Min Time | Max Time | Std Dev | Speedup | Ideal | Efficiency | Serial Fraction | Max Theoretical Speedup
+--------------------------------------------------------------------------------------------------------------------------------
+      1 | 1.117188 | 1.113550 | 1.122082 | 0.003047 |   1.000 | 1.000 |      1.000 |               - |                       -
+      2 | 3.667487 | 3.560725 | 3.917548 | 0.130759 |   0.305 | 2.000 |      0.152 |          1.0000 |                   1.000
+      4 | 8.113208 | 7.974089 | 8.190805 | 0.073027 |   0.138 | 4.000 |      0.034 |          1.0000 |                   1.000
+      8 | 12.810959 | 12.792205 | 12.847212 | 0.018882 |   0.087 | 8.000 |      0.011 |          1.0000 |                   1.000
+
+Projected Results (Amdahl-based)
+Serial fraction used for projection: 1.0000
+Threads | Predicted Speedup | Predicted Time | Predicted Efficiency
+----------------------------------------------------------------
+     16 |             1.000 |       1.117188 |                0.062
+     32 |             1.000 |       1.117188 |                0.031
+     64 |             1.000 |       1.117188 |                0.016
+
+Resource Usage (averaged per thread count)
+Threads | User Time | System Time | Util  | Max RSS (KB) | Vol Ctx | Invol Ctx
+------------------------------------------------------------------------------------
+      1 |    1.1146 |      0.0000 |  1.00 |         2212 |       1 |         1
+      2 |    7.3306 |      0.0000 |  1.00 |         2248 |       1 |         5
+      4 |   32.3067 |      0.0000 |  1.00 |         2223 |       4 |        34
+      8 |  101.8522 |      0.0040 |  0.99 |         3120 |       8 |       203
+
+Util = user_time / (wall_time * threads). 1.0 = every thread fully busy doing user work; lower = threads stalled, sleeping, or waiting.
+
+Interpretation
+--------------
+1 -> 2 threads: Involuntary context-switches spiked (1 -> 5). Likely oversubscription or scheduler contention.
+2 -> 4 threads: Involuntary context-switches spiked (5 -> 34). Likely oversubscription or scheduler contention.
+4 -> 8 threads: Involuntary context-switches spiked (34 -> 203). Likely oversubscription or scheduler contention.
+
+Projection note: future speedup was estimated with Amdahl's Law using the serial fraction from the highest measured thread count. At 64 threads, projected speedup is 1.000 with predicted efficiency 0.016.

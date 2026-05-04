@@ -1,17 +1,12 @@
-// pthreads test program — parallel array sum
-// Reads thread count from argv[1] (ParallelScope passes this automatically).
-// Compile: gcc -O2 -lpthread pthreads_test.c -lm -o pthreads_test
-// Run:     ./pthreads_test 4
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
 
-#define ARRAY_SIZE 10000000  // 10 million elements
+#define ARRAY_SIZE 10000000
 
 int    num_threads;
-double partial_sums[256]; // one slot per thread, max 256 threads
+double partial_sums[256];
 
 typedef struct {
     int thread_id;

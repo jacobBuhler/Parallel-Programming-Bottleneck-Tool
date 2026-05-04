@@ -1,0 +1,54 @@
+ParaCheck Scaling Diagnosis Report
+
+Machine
+-------
+CPU:      AMD Ryzen 5 5600X 6-Core Processor
+Cores:    6 physical / 12 logical (SMT enabled)
+Memory:   7 GB
+Kernel:   Linux 5.15.167.4-microsoft-standard-WSL2
+Compiler: g++ 11.4.0
+
+Overall Verdict
+---------------
+Verdict:    Synchronization or contention overhead
+Confidence: high
+Karp-Flatt serial fraction grew from 0.34 to 0.43 across the sweep, the signature of thread-count-dependent overhead (lock contention, cache coherence traffic, or shared resource competition) rather than a fixed serial bottleneck.
+
+Threads | Avg Time | Min Time | Max Time | Std Dev | Speedup | Ideal | Efficiency | Serial Fraction | Max Theoretical Speedup
+--------------------------------------------------------------------------------------------------------------------------------
+      1 | 1.152892 | 1.050004 | 1.416257 | 0.133501 |   1.000 | 1.000 |      1.000 |               - |                       -
+      2 | 0.771928 | 0.740052 | 0.790434 | 0.022043 |   1.494 | 2.000 |      0.747 |          0.3391 |                   2.949
+      3 | 0.694175 | 0.660199 | 0.799717 | 0.053294 |   1.661 | 3.000 |      0.554 |          0.4032 |                   2.480
+      4 | 0.649973 | 0.590385 | 0.690007 | 0.035742 |   1.774 | 4.000 |      0.443 |          0.4184 |                   2.390
+      5 | 0.592197 | 0.568835 | 0.609883 | 0.013624 |   1.947 | 5.000 |      0.389 |          0.3921 |                   2.551
+      6 | 0.604302 | 0.582867 | 0.641095 | 0.022091 |   1.908 | 6.000 |      0.318 |          0.4290 |                   2.331
+
+Projected Results (Amdahl-based)
+Serial fraction used for projection: 0.4290
+Threads | Predicted Speedup | Predicted Time | Predicted Efficiency
+----------------------------------------------------------------
+     12 |             2.098 |       0.549443 |                0.175
+     24 |             2.209 |       0.522014 |                0.092
+     48 |             2.268 |       0.508299 |                0.047
+
+Resource Usage (averaged per thread count)
+Threads | User Time | System Time | Util  | Max RSS (KB) | Vol Ctx | Invol Ctx
+------------------------------------------------------------------------------------
+      1 |    0.7697 |      0.0790 |  0.67 |       115036 |    1559 |       102
+      2 |    0.8120 |      0.0624 |  0.53 |       115490 |    2704 |       370
+      3 |    0.9517 |      0.0671 |  0.46 |       114552 |    4045 |        50
+      4 |    1.0331 |      0.0953 |  0.40 |       115767 |    5254 |        26
+      5 |    1.0577 |      0.1094 |  0.36 |       115765 |    6561 |        42
+      6 |    1.2597 |      0.1349 |  0.35 |       116317 |    7986 |        90
+
+Util = user_time / (wall_time * threads). 1.0 = every thread fully busy doing user work; lower = threads stalled, sleeping, or waiting.
+
+Interpretation
+--------------
+1 -> 2 threads: Low parallel utilization (0.53). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+2 -> 3 threads: Low parallel utilization (0.46). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+3 -> 4 threads: Low parallel utilization (0.40). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+4 -> 5 threads: Low parallel utilization (0.36). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+5 -> 6 threads: Low parallel utilization (0.35). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+
+Projection note: future speedup was estimated with Amdahl's Law using the serial fraction from the highest measured thread count. At 48 threads, projected speedup is 2.268 with predicted efficiency 0.047.

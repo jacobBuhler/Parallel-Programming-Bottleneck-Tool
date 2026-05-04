@@ -1,0 +1,59 @@
+ParaCheck Scaling Diagnosis Report
+
+Machine
+-------
+CPU:      AMD Ryzen 5 5600X 6-Core Processor
+Cores:    6 physical / 12 logical (SMT enabled)
+Memory:   7 GB
+Kernel:   Linux 5.15.167.4-microsoft-standard-WSL2
+Compiler: g++ 11.4.0
+
+Note: requested thread counts exceed this machine's physical core count (6). Efficiency drop above 6 threads is expected and may dominate the diagnosis.
+
+Overall Verdict
+---------------
+Verdict:    SMT/hyperthread saturation
+Confidence: high
+Speedup degrades above 6 threads, which equals this machine's physical core count. Threads beyond that share execution resources with their physical-core siblings (SMT), so each additional thread contributes only a fraction of a core's throughput.
+
+Threads | Avg Time | Min Time | Max Time | Std Dev | Speedup | Ideal | Efficiency | Serial Fraction | Max Theoretical Speedup
+--------------------------------------------------------------------------------------------------------------------------------
+      1 | 0.082855 | 0.081571 | 0.084205 | 0.001080 |   1.000 | 1.000 |      1.000 |               - |                       -
+      2 | 0.044136 | 0.042267 | 0.048775 | 0.002437 |   1.877 | 2.000 |      0.939 |          0.0654 |                  15.294
+      4 | 0.024498 | 0.021558 | 0.029110 | 0.003275 |   3.382 | 4.000 |      0.846 |          0.0609 |                  16.423
+      5 | 0.022629 | 0.017717 | 0.027949 | 0.004217 |   3.661 | 5.000 |      0.732 |          0.0914 |                  10.942
+      6 | 0.017571 | 0.015381 | 0.023907 | 0.003250 |   4.716 | 6.000 |      0.786 |          0.0545 |                  18.355
+      7 | 0.020758 | 0.020626 | 0.020861 | 0.000078 |   3.992 | 7.000 |      0.570 |          0.1256 |                   7.961
+      8 | 0.018279 | 0.018126 | 0.018427 | 0.000119 |   4.533 | 8.000 |      0.567 |          0.1093 |                   9.151
+
+Projected Results (Amdahl-based)
+Serial fraction used for projection: 0.1093
+Threads | Predicted Speedup | Predicted Time | Predicted Efficiency
+----------------------------------------------------------------
+     16 |             6.063 |       0.013667 |                0.379
+     32 |             7.293 |       0.011360 |                0.228
+     64 |             8.117 |       0.010207 |                0.127
+
+Resource Usage (averaged per thread count)
+Threads | User Time | System Time | Util  | Max RSS (KB) | Vol Ctx | Invol Ctx
+------------------------------------------------------------------------------------
+      1 |    0.0798 |      0.0000 |  0.96 |         2682 |       1 |         0
+      2 |    0.0748 |      0.0000 |  0.85 |         2627 |       0 |         0
+      4 |    0.0715 |      0.0021 |  0.73 |         2700 |       2 |         0
+      5 |    0.0898 |      0.0000 |  0.79 |         2707 |       2 |         0
+      6 |    0.0654 |      0.0000 |  0.62 |         2736 |       3 |         0
+      7 |    0.1279 |      0.0000 |  0.88 |         2723 |       5 |         0
+      8 |    0.1015 |      0.0000 |  0.69 |         2775 |       6 |         0
+
+Util = user_time / (wall_time * threads). 1.0 = every thread fully busy doing user work; lower = threads stalled, sleeping, or waiting.
+
+Interpretation
+--------------
+1 -> 2 threads: Timing variability is high, so benchmark results may be noisy.
+2 -> 4 threads: Timing variability is high, so benchmark results may be noisy.
+4 -> 5 threads: Timing variability is high, so benchmark results may be noisy.
+5 -> 6 threads: Low parallel utilization (0.62). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+6 -> 7 threads: Estimated serial fraction is noticeable, so Amdahl's Law may be limiting additional speedup.
+7 -> 8 threads: Low parallel utilization (0.69). Threads spent significant time stalled or waiting; common causes are synchronization, load imbalance, or I/O.
+
+Projection note: future speedup was estimated with Amdahl's Law using the serial fraction from the highest measured thread count. At 64 threads, projected speedup is 8.117 with predicted efficiency 0.127.

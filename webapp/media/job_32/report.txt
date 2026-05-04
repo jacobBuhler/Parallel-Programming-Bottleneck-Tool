@@ -1,0 +1,34 @@
+OMPCheck Scaling Diagnosis Report
+
+Threads | Avg Time | Min Time | Max Time | Std Dev | Speedup | Ideal | Efficiency | Serial Fraction | Max Theoretical Speedup
+--------------------------------------------------------------------------------------------------------------------------------
+      1 | 0.701894 | 0.697152 | 0.709774 | 0.004344 |   1.000 | 1.000 |      1.000 |               - |                       -
+      2 | 0.867638 | 0.841533 | 0.943931 | 0.038475 |   0.809 | 2.000 |      0.404 |          1.0000 |                   1.000
+      4 | 0.866985 | 0.846494 | 0.878606 | 0.011820 |   0.810 | 4.000 |      0.202 |          1.0000 |                   1.000
+      8 | 0.781323 | 0.775237 | 0.784949 | 0.003271 |   0.898 | 8.000 |      0.112 |          1.0000 |                   1.000
+
+Projected Results (Amdahl-based)
+Serial fraction used for projection: 1.0000
+Threads | Predicted Speedup | Predicted Time | Predicted Efficiency
+----------------------------------------------------------------
+     16 |             1.000 |       0.701894 |                0.062
+     32 |             1.000 |       0.701894 |                0.031
+     64 |             1.000 |       0.701894 |                0.016
+
+Resource Usage (averaged per thread count)
+Threads | User Time | System Time | Util  | Max RSS (KB) | Vol Ctx | Invol Ctx
+------------------------------------------------------------------------------------
+      1 |    0.6960 |      0.0020 |  0.99 |         2273 |       0 |         0
+      2 |    1.7205 |      0.0020 |  0.99 |         2260 |       0 |        10
+      4 |    3.4004 |      0.0000 |  0.98 |         2275 |       3 |        23
+      8 |    6.1308 |      0.0000 |  0.98 |         2303 |       9 |        25
+
+Util = user_time / (wall_time * threads). 1.0 = every thread fully busy doing user work; lower = threads stalled, sleeping, or waiting.
+
+Interpretation
+--------------
+1 -> 2 threads: Poor efficiency detected. Possible causes include synchronization overhead, load imbalance, or memory bandwidth limits.
+2 -> 4 threads: Poor efficiency detected. Possible causes include synchronization overhead, load imbalance, or memory bandwidth limits.
+4 -> 8 threads: Poor efficiency detected. Possible causes include synchronization overhead, load imbalance, or memory bandwidth limits.
+
+Projection note: future speedup was estimated with Amdahl's Law using the serial fraction from the highest measured thread count. At 64 threads, projected speedup is 1.000 with predicted efficiency 0.016.

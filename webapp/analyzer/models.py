@@ -45,6 +45,9 @@ class AnalysisJob(models.Model):
     runtime_plot = models.ImageField(upload_to='results/plots/', blank=True, null=True)
     speedup_plot = models.ImageField(upload_to='results/plots/', blank=True, null=True)
     efficiency_plot = models.ImageField(upload_to='results/plots/', blank=True, null=True)
+    projected_runtime_plot = models.ImageField(upload_to='results/plots/', blank=True, null=True)#projected plots added
+    projected_speedup_plot = models.ImageField(upload_to='results/plots/', blank=True, null=True)
+    projected_efficiency_plot = models.ImageField(upload_to='results/plots/', blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

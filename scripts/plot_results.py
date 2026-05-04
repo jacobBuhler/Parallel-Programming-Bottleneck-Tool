@@ -40,7 +40,7 @@ def main():
     with open(input_csv, "r") as f:
         reader = csv.reader(line for line in f if not line.startswith("#"))
         header = next(reader, None)
-        if header != ["threads", "trial", "time"]: #validate csv has exp columns
+        if header is None or header[:3] != ["threads", "trial", "time"]:
             print("Unexpected CSV header:", header)
             sys.exit(1)
 
@@ -76,7 +76,8 @@ def main():
         future_threads.append(current)
 
     predicted_speedups = [amdahl_speedup(serial_fraction, t) for t in future_threads]
-    predicted_efficiencies = [s / t for s, t in zip(predicted_speedups, future_threads)]   
+    predicted_efficiencies = [s / t for s, t in zip(predicted_speedups, future_threads)]
+    predicted_times = [(baseline / s) if s > 0.0 else 0.0 for s in predicted_speedups]
  
     #runtime vs threads
     plt.figure(figsize=(8, 5))
@@ -85,14 +86,14 @@ def main():
     plt.ylabel("Time (seconds)")
     plt.title(f"{title} - Runtime")
     plt.grid(True)
+    plt.legend()
     plt.savefig(output_png.replace(".png", "_runtime.png"), bbox_inches="tight")
     plt.close()
-
+ 
     #speedup vs threads
     plt.figure(figsize=(8, 5))
     plt.plot(thread_counts, speedups, marker="o", label="Measured Speedup")
-    plt.plot(thread_counts + future_threads, thread_counts + future_threads, marker="x", linestyle="--", label="Ideal Speedup")
-    plt.plot(future_threads, predicted_speedups, marker="s", linestyle=":", label="Predicted Speedup")
+    plt.plot(thread_counts, thread_counts, marker="x", linestyle="--", label="Ideal Speedup")
     plt.xlabel("Threads")
     plt.ylabel("Speedup")
     plt.title(f"{title} - Speedup")
@@ -100,11 +101,10 @@ def main():
     plt.legend()
     plt.savefig(output_png.replace(".png", "_speedup.png"), bbox_inches="tight")
     plt.close()
-
+ 
     #efficiency vs threads
     plt.figure(figsize=(8, 5))
     plt.plot(thread_counts, efficiencies, marker="o", label="Measured Efficiency")
-    plt.plot(future_threads, predicted_efficiencies, marker="s", linestyle=":", label="Predicted Efficiency")
     plt.xlabel("Threads")
     plt.ylabel("Efficiency")
     plt.title(f"{title} - Efficiency")
@@ -112,7 +112,42 @@ def main():
     plt.legend()
     plt.savefig(output_png.replace(".png", "_efficiency.png"), bbox_inches="tight")
     plt.close()
-
+ 
+    if future_threads:
+        #projected runtime
+        plt.figure(figsize=(8, 5))
+        plt.plot(future_threads, predicted_times, marker="s", linestyle=":", color="tab:orange", label="Predicted Time")
+        plt.xlabel("Threads")
+        plt.ylabel("Time (seconds)")
+        plt.title(f"{title} - Projected Runtime")
+        plt.grid(True)
+        plt.legend()
+        plt.savefig(output_png.replace(".png", "_projected_runtime.png"), bbox_inches="tight")
+        plt.close()
+ 
+        #projected speedup
+        plt.figure(figsize=(8, 5))
+        plt.plot(future_threads, predicted_speedups, marker="s", linestyle=":", color="tab:orange", label="Predicted Speedup")
+        plt.plot(future_threads, future_threads, marker="x", linestyle="--", color="tab:gray", label="Ideal Speedup")
+        plt.xlabel("Threads")
+        plt.ylabel("Speedup")
+        plt.title(f"{title} - Projected Speedup")
+        plt.grid(True)
+        plt.legend()
+        plt.savefig(output_png.replace(".png", "_projected_speedup.png"), bbox_inches="tight")
+        plt.close()
+ 
+        #projected efficiency
+        plt.figure(figsize=(8, 5))
+        plt.plot(future_threads, predicted_efficiencies, marker="s", linestyle=":", color="tab:orange", label="Predicted Efficiency")
+        plt.xlabel("Threads")
+        plt.ylabel("Efficiency")
+        plt.title(f"{title} - Projected Efficiency")
+        plt.grid(True)
+        plt.legend()
+        plt.savefig(output_png.replace(".png", "_projected_efficiency.png"), bbox_inches="tight")
+        plt.close()
+ 
     print("Saved plots based on", input_csv)
 
 if __name__ == "__main__":

@@ -1,16 +1,16 @@
 {% extends 'analyzer/base.html' %}
 
-{% block title %}OMPCheck{% endblock %}
+{% block title %}ParaCheck{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center mb-4">
     <div class="col-lg-8">
         <div class="card bg-body-tertiary border-0 shadow-sm">
             <div class="card-body p-5 text-center">
-                <h1 class="display-5 mb-3">OMPCheck</h1>
+                <h1 class="display-5 mb-3">ParaCheck</h1>
                 <p class="lead text-secondary mb-4">
                     Benchmark OpenMP, MPI, and pthreads programs. Upload your source, pick your
-                    thread counts, and let OMPCheck run the scaling study for you.
+                    thread counts, and let ParaCheck run the analysis.
                 </p>
 
                 {% if user.is_authenticated %}
