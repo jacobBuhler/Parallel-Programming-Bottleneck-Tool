@@ -7,6 +7,7 @@ import subprocess
 import shutil
 import os
 import shlex
+import platform
 
 from .forms import SimpleSignupForm, AnalysisJobForm
 from .models import AnalysisJob
@@ -66,19 +67,46 @@ def signup(request):
 
     return render(request, 'registration/signup.html', {'form': form})
 
+
+def _openmp_flags():
+    if platform.system() == 'Darwin':
+        try:
+            libomp = subprocess.run(
+                ['brew', '--prefix', 'libomp'],
+                capture_output=True, text=True, check=True
+            ).stdout.strip()
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            libomp = '/opt/homebrew/opt/libomp'  # Apple Silicon default
+        return (
+            ['-Xpreprocessor', '-fopenmp', f'-I{libomp}/include'],
+            [f'-L{libomp}/lib', '-lomp'],
+        )
+    return (['-fopenmp'], ['-fopenmp'])
+
+
 def _compile_command(upload_path, compiled_path, paradigm):
     #return compiler command
     is_cpp = upload_path.endswith('.cpp')
     compiler = 'g++' if is_cpp else 'gcc'
-    base = [compiler, '-O2', upload_path, '-lm', '-o', compiled_path]
+
+    cmd = [compiler, '-O2']
 
     if paradigm == 'openmp':
-        base.insert(2, '-fopenmp')
+        omp_cflags, omp_ldflags = _openmp_flags()
+        cmd += omp_cflags
+        cmd += [upload_path, '-lm']
+        cmd += omp_ldflags
     elif paradigm == 'pthreads':
-        base += ['-lpthread']
+        cmd += [upload_path, '-lm', '-lpthread']
     elif paradigm == 'mpi':
-        base[0] = 'mpicxx' if is_cpp else 'mpicc'
-    return base
+        cmd[0] = 'mpicxx' if is_cpp else 'mpicc'
+        cmd += [upload_path, '-lm']
+    else:
+        cmd += [upload_path, '-lm']
+
+    cmd += ['-o', compiled_path]
+    return cmd
+
 
 def _paracheck_run_args(paracheck_path, paradigm, threads, runs, csv_path, report_path, program_path, extra_args):
     #build the full command
